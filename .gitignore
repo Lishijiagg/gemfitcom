@@ -67,6 +67,7 @@ Mono_culture_ODs/
 
 # Documentation build output
 site/
+site-zh/
 
 # Secrets / local overrides
 .env

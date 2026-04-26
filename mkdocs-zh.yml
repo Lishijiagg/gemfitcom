@@ -1,0 +1,83 @@
+site_name: GemFitCom（中文版）
+site_description: GEM + Fit + Community —— GEM 校准与多菌株交互模拟的 Python pipeline
+site_url: https://lishijiagg.github.io/gemfitcom/
+repo_url: https://github.com/Lishijiagg/gemfitcom
+repo_name: Lishijiagg/gemfitcom
+edit_uri: edit/main/docs/zh/
+
+docs_dir: docs/zh
+site_dir: site-zh
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+            members_order: source
+            show_root_heading: true
+            heading_level: 2
+
+nav:
+  - 首页: index.md
+  - 安装: install.md
+  - 快速开始: quickstart.md
+  - 方法学: methods.md
+  - API 参考:
+      - io: api/io.md
+      - preprocess: api/preprocess.md
+      - medium: api/medium.md
+      - kinetics: api/kinetics.md
+      - simulate: api/simulate.md
+      - interactions: api/interactions.md
+      - gapfill: api/gapfill.md
+      - viz: api/viz.md
+      - utils: api/utils.md
