@@ -97,10 +97,11 @@ select = [
 ignore = [
     "E501",   # line-too-long — handled by formatter
     "N815",   # mixedCase field names — we keep SI unit casing (mM, gDW, mL)
-    # Unicode math notation in scientific docstrings/labels is intentional
-    # (·, ², ×, −, Σ, Δ, μ). Same spirit as the N815 carve-out above.
+    # Unicode math notation in scientific docstrings/labels/comments is
+    # intentional (·, ², ×, −, Σ, Δ, μ). Same spirit as the N815 carve-out.
     "RUF001",
     "RUF002",
+    "RUF003",
 ]
 
 [tool.ruff.lint.per-file-ignores]

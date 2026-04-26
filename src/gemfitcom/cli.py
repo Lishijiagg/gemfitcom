@@ -15,7 +15,9 @@ bodies so ``gemfitcom --help`` stays fast.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -28,6 +30,12 @@ if TYPE_CHECKING:
 
     from gemfitcom.gapfill.report import GapfillReport
     from gemfitcom.io.config import CommunityConfig, Config
+
+# Force UTF-8 stdout/stderr so Unicode in CLI output (R², ×, μ, …)
+# does not crash on Windows GBK consoles.
+for _stream in (sys.stdout, sys.stderr):
+    with contextlib.suppress(AttributeError, OSError):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 app = typer.Typer(
     name="gemfitcom",
