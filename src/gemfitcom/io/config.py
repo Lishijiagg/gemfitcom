@@ -420,7 +420,7 @@ def load_fitted_params(path: str | Path) -> FittedParams:
     mm_raw = raw.get("mm_params", {}) or {}
     if not isinstance(strain, str) or not strain:
         raise ConfigError(f"{path}: missing/invalid 'strain'")
-    if not isinstance(r2, (int, float)):
+    if not isinstance(r2, int | float):
         raise ConfigError(f"{path}: missing/invalid 'r_squared'")
     if not isinstance(mm_raw, dict):
         raise ConfigError(f"{path}: 'mm_params' must be a mapping")

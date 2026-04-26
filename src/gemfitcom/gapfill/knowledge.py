@@ -389,7 +389,7 @@ def _parse_metabolite(raw: Any, *, where: str) -> MetaboliteSpec:
     charge_raw = raw.get("charge")
     if (
         charge_raw is None
-        or not isinstance(charge_raw, (int, float))
+        or not isinstance(charge_raw, int | float)
         or isinstance(charge_raw, bool)
     ):
         raise KBError(f"metabolite {met_id!r}{where} requires an integer 'charge'")
@@ -459,7 +459,7 @@ def _parse_reaction(
 
 
 def _parse_bounds(raw: Any, *, where: str) -> tuple[float, float]:
-    if not isinstance(raw, (list, tuple)) or len(raw) != 2:
+    if not isinstance(raw, list | tuple) or len(raw) != 2:
         raise KBError(f"'bounds'{where} must be a length-2 sequence of numbers, got {raw!r}")
     try:
         lo, hi = float(raw[0]), float(raw[1])
