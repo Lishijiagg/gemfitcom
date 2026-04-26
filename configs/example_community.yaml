@@ -1,0 +1,45 @@
+# Example multi-strain community configuration for GemFitCom.
+# Consumed by `gemfitcom simulate COMMUNITY.yaml`.
+#
+# This example uses outputs of `gemfitcom fit configs/example_strain.yaml`
+# (run that first; it produces toy_acetogen_model_fitted.xml and
+# toy_acetogen_fitted_params.yaml under results/). For a real consortium,
+# repeat the fit for each strain and add it to the `strains:` list below.
+
+community:
+  name: demo_community
+
+# Registered medium name (see src/gemfitcom/data/media/) OR a path to a
+# medium YAML file.
+medium: YCFA
+
+strains:
+  - name: toy_acetogen
+    # Output of `gemfitcom fit configs/example_strain.yaml -o results/`.
+    model_path: ./results/toy_acetogen_model_fitted.xml
+    # Load MM kinetics from the fitted-params YAML emitted by `fit`.
+    # Inline `mm_params` (see below) override entries from this file.
+    fitted_params_path: ./results/toy_acetogen_fitted_params.yaml
+    initial_biomass: 0.01   # gDW / L at t=0
+
+  # A second strain illustrates inline MM parameters. Drop this block to
+  # run a single-strain "community", or replace the model_path with another
+  # fitted SBML for a real consortium.
+  - name: toy_acetogen_clone
+    model_path: ./data/examples/toy_acetogen.xml
+    initial_biomass: 0.01
+    # Inline MM parameters (used if no fitted_params_path is given, or to
+    # override individual substrates).
+    mm_params:
+      EX_glc__D_e: { vmax: 3.0, km: 1.5 }
+
+simulation:
+  # One of: sequential_dfba | micom | fusion
+  mode: sequential_dfba
+  dt: 0.25
+  total_time_h: 14.0
+  # When true, per-strain per-exchange fluxes are saved as a long-form
+  # CSV — required for downstream `gemfitcom interactions`.
+  save_fluxes: true
+  # MICOM tradeoff fraction; used by `micom` and `fusion` modes only.
+  micom_fraction: 0.5

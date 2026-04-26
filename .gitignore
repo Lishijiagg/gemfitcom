@@ -1,0 +1,77 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+# Large data and model files should live outside the repo (Zenodo / releases).
+# Note: data/examples/ is the synthetic mini dataset shipped for the
+# quickstart and MUST stay tracked. The Data/ rule below would otherwise
+# swallow it on case-insensitive filesystems (Windows, macOS APFS default),
+# so we explicitly re-include data/examples/ via the negation rules below.
+Data/
+GEMs/
+HPLC_results/
+Mono_culture_ODs/
+*.sbml
+*.xml.gz
+*.mat
+
+# Re-include the shipped quickstart dataset (must come after the Data/ rule).
+!data/
+/data/*
+!/data/examples/
+!/data/examples/**
+
+# Documentation build output
+site/
+
+# Secrets / local overrides
+.env
+.env.*
+!.env.example
+
+# Claude Code per-user local settings (project-shared settings.json is fine to commit)
+.claude/settings.local.json

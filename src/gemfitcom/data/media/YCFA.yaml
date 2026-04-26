@@ -1,0 +1,66 @@
+# YCFA (Yeast-Casitone-Fatty acids) — minimal v0.1 composition.
+#
+# This is a pragmatic baseline that ships with gemfitcom:
+#   - Tracks the primary carbon source and the seven standard fermentation
+#     products dynamically (ODE pool in dFBA).
+#   - Leaves essential ions, cofactors, and water as unlimited trace supply.
+#
+# It is NOT a complete BacArena/AGORA2 YCFA. Amino acids, vitamins, and
+# fatty acids are not listed — the upstream pipeline loads those from an
+# external nutrients_YCFA.csv that is not distributed here. If your strain
+# is auxotrophic for any of those, extend `unlimited_components` (or add
+# them to `pool_components` with a finite concentration) before calling
+# apply_medium().
+#
+# Exchange IDs use BiGG / AGORA2 convention (double underscores). For
+# AGORA1 models with parenthesis-style IDs (e.g. `EX_glc_D(e)`), translate
+# before loading or write a parallel YAML.
+#
+# Units: pool_components values are initial concentrations in mM.
+
+name: YCFA
+version: "0.1"
+description: >-
+  Simplified YCFA medium for gut-anaerobe GEMs. Carbon source swappable via
+  config; fermentation products initialized at zero for cross-feeding tracking.
+
+pool_components:
+  # Primary carbon source (default GMC = glucose baseline from Duncan 2002).
+  EX_glc__D_e: 5.0
+
+  # Short-chain and branched fermentation products — tracked for cross-feeding.
+  EX_ac_e: 0.0        # acetate
+  EX_but_e: 0.0       # butyrate
+  EX_ppa_e: 0.0       # propionate
+  EX_for_e: 0.0       # formate
+  EX_lac__D_e: 0.0    # D-lactate
+  EX_lac__L_e: 0.0    # L-lactate
+  EX_succ_e: 0.0      # succinate
+
+# Essentials kept at unlimited supply (lower bound set to -1000 by
+# apply_medium). These are the minimum that AGORA2 / CarveMe gut models
+# typically require to produce biomass under YCFA.
+unlimited_components:
+  - EX_h2o_e
+  - EX_h_e
+  - EX_pi_e
+  - EX_so4_e
+  - EX_nh4_e
+  - EX_co2_e
+  - EX_h2_e
+  - EX_na1_e
+  - EX_k_e
+  - EX_mg2_e
+  - EX_ca2_e
+  - EX_fe2_e
+  - EX_fe3_e
+  - EX_cl_e
+  - EX_mn2_e
+  - EX_zn2_e
+  - EX_cu2_e
+  - EX_cobalt2_e
+  - EX_mobd_e
+
+metadata:
+  source: "Duncan et al. 2002 (simplified for v0.1)"
+  reference: "https://doi.org/10.1099/00221287-148-7-2141"

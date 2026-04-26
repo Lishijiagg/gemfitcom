@@ -1,0 +1,59 @@
+# Example per-strain configuration for GemFitCom — runnable out of the box
+# against the synthetic mini dataset shipped in `data/examples/`.
+#
+# Run from the repository root:
+#     gemfitcom fit configs/example_strain.yaml --output results/ --no-gapfill
+#
+# `--no-gapfill` skips the KB-driven gap-fill stage because the toy strain
+# is fully self-contained (the BIOMASS reaction already produces acetate).
+# For real AGORA2/CarveMe models, drop the flag.
+
+strain:
+  name: toy_acetogen
+  model_path: ./data/examples/toy_acetogen.xml
+  # One of: curated | agora2 | carveme — determines whether gap-fill runs.
+  # The synthetic toy is treated as `curated` so gap-fill is a no-op.
+  model_source: curated
+
+medium:
+  # Name of a registered medium (see src/gemfitcom/data/media/).
+  name: YCFA
+  # Primary carbon source to fit MM kinetics against.
+  carbon_source:
+    exchange_id: EX_glc__D_e
+    initial_concentration_mM: 5.0
+
+experiment:
+  od_file: ./data/examples/toy_acetogen_od.csv
+  hplc_file: ./data/examples/toy_acetogen_hplc.csv
+  # OD-to-biomass conversion factor (gDW/OD). Matches the value used by
+  # `scripts/build_example_data.py` to synthesise the OD trace.
+  biomass_conversion: 0.35
+  # Inoculum biomass (gDW/L). Required to recover absolute biomass from
+  # baseline-subtracted OD curves; fit_kinetics needs the absolute scale.
+  # Omit only when the OD CSV is already absolute (no media baseline).
+  initial_biomass_gDW_per_L: 0.01
+
+simulation:
+  # Time step in hours. Default 0.25; override per user preference.
+  dt: 0.25
+  # The synthetic data covers 14h. For real anaerobic experiments use 48-72h.
+  total_time_h: 14.0
+  # One of: sequential_dfba | micom | fusion
+  mode: sequential_dfba
+  # MICOM-specific settings (used when mode is "micom" or "fusion").
+  micom:
+    # Cooperativity tradeoff in [0, 1]; lower = stricter community optimum,
+    # higher = closer to individual maximum. MICOM default is 0.5.
+    tradeoff_alpha: 0.5
+
+kinetics_fit:
+  vmax_bounds_mmol_per_gDW_per_h: [0.001, 20.0]
+  km_bounds_mM: [0.001, 30.0]
+  # differential_evolution coarse search
+  de_maxiter: 50
+  de_popsize: 15
+  # Grid size for local refinement around the DE optimum
+  grid_points: 21
+  # ± fractional range around the optimum for the refinement grid
+  grid_span: 0.5

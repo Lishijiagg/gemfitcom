@@ -1,0 +1,166 @@
+# Short-chain fatty acids & common fermentation-product gap-fill KB — v0.1.
+#
+# Purpose: for each observed HPLC product, supply the minimal set of reactions
+# needed to let a model SECRETE that product. The assumption is that the
+# model can already produce the cytosolic metabolite (e.g. but_c) via its own
+# pathway — the usual AGORA2 / CarveMe pathology is a missing transport +
+# exchange, not a missing synthesis step. If a strain lacks the internal
+# pathway, extend this KB or supply a custom one.
+#
+# Convention:
+#   - BiGG-style IDs (double underscores for stereochemistry).
+#   - Transport is modelled as a one-way simple-diffusion export
+#     ("met_c --> met_e"). This avoids coupling to an explicit proton
+#     symporter (which would require h_c / h_e to be wired consistently in
+#     every model). Exchanges are secretion-only (bounds [0, 1000]).
+#   - Metabolite charges/formulae follow BiGG universal. The loader checks
+#     mass & charge balance on every listed reaction.
+#
+# Any reaction or metabolite ID already present in the target model is
+# skipped on apply (we never overwrite existing stoichiometry).
+
+name: scfa
+version: "0.1"
+description: >-
+  Short-chain fatty acids and common gut-fermentation products: acetate,
+  propionate, butyrate, D- and L-lactate, succinate, formate.
+
+entries:
+  # Acetate ------------------------------------------------------------------
+  - exchange_id: EX_ac_e
+    display_name: acetate
+    metabolites:
+      - {id: ac_c, compartment: c, formula: C2H3O2, charge: -1, name: Acetate}
+      - {id: ac_e, compartment: e, formula: C2H3O2, charge: -1, name: Acetate}
+    reactions:
+      - id: ACtex
+        name: Acetate cytoplasm-to-extracellular diffusion
+        equation: "ac_c --> ac_e"
+        bounds: [0, 1000]
+      - id: EX_ac_e
+        name: Acetate exchange
+        equation: "ac_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:ac_c
+      - BiGG:EX_ac_e
+
+  # Propionate ---------------------------------------------------------------
+  - exchange_id: EX_ppa_e
+    display_name: propionate
+    metabolites:
+      - {id: ppa_c, compartment: c, formula: C3H5O2, charge: -1, name: Propionate}
+      - {id: ppa_e, compartment: e, formula: C3H5O2, charge: -1, name: Propionate}
+    reactions:
+      - id: PPAtex
+        name: Propionate cytoplasm-to-extracellular diffusion
+        equation: "ppa_c --> ppa_e"
+        bounds: [0, 1000]
+      - id: EX_ppa_e
+        name: Propionate exchange
+        equation: "ppa_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:ppa_c
+      - BiGG:EX_ppa_e
+
+  # Butyrate -----------------------------------------------------------------
+  - exchange_id: EX_but_e
+    display_name: butyrate
+    metabolites:
+      - {id: but_c, compartment: c, formula: C4H7O2, charge: -1, name: Butyrate}
+      - {id: but_e, compartment: e, formula: C4H7O2, charge: -1, name: Butyrate}
+    reactions:
+      - id: BUTtex
+        name: Butyrate cytoplasm-to-extracellular diffusion
+        equation: "but_c --> but_e"
+        bounds: [0, 1000]
+      - id: EX_but_e
+        name: Butyrate exchange
+        equation: "but_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:but_c
+      - BiGG:EX_but_e
+
+  # D-lactate ----------------------------------------------------------------
+  - exchange_id: EX_lac__D_e
+    display_name: D-lactate
+    metabolites:
+      - {id: lac__D_c, compartment: c, formula: C3H5O3, charge: -1, name: D-Lactate}
+      - {id: lac__D_e, compartment: e, formula: C3H5O3, charge: -1, name: D-Lactate}
+    reactions:
+      - id: D_LACtex
+        name: D-lactate cytoplasm-to-extracellular diffusion
+        equation: "lac__D_c --> lac__D_e"
+        bounds: [0, 1000]
+      - id: EX_lac__D_e
+        name: D-lactate exchange
+        equation: "lac__D_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:lac__D_c
+      - BiGG:EX_lac__D_e
+
+  # L-lactate ----------------------------------------------------------------
+  - exchange_id: EX_lac__L_e
+    display_name: L-lactate
+    metabolites:
+      - {id: lac__L_c, compartment: c, formula: C3H5O3, charge: -1, name: L-Lactate}
+      - {id: lac__L_e, compartment: e, formula: C3H5O3, charge: -1, name: L-Lactate}
+    reactions:
+      - id: L_LACtex
+        name: L-lactate cytoplasm-to-extracellular diffusion
+        equation: "lac__L_c --> lac__L_e"
+        bounds: [0, 1000]
+      - id: EX_lac__L_e
+        name: L-lactate exchange
+        equation: "lac__L_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:lac__L_c
+      - BiGG:EX_lac__L_e
+
+  # Succinate ----------------------------------------------------------------
+  - exchange_id: EX_succ_e
+    display_name: succinate
+    metabolites:
+      - {id: succ_c, compartment: c, formula: C4H4O4, charge: -2, name: Succinate}
+      - {id: succ_e, compartment: e, formula: C4H4O4, charge: -2, name: Succinate}
+    reactions:
+      - id: SUCCtex
+        name: Succinate cytoplasm-to-extracellular diffusion
+        equation: "succ_c --> succ_e"
+        bounds: [0, 1000]
+      - id: EX_succ_e
+        name: Succinate exchange
+        equation: "succ_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:succ_c
+      - BiGG:EX_succ_e
+
+  # Formate ------------------------------------------------------------------
+  - exchange_id: EX_for_e
+    display_name: formate
+    metabolites:
+      - {id: for_c, compartment: c, formula: CHO2, charge: -1, name: Formate}
+      - {id: for_e, compartment: e, formula: CHO2, charge: -1, name: Formate}
+    reactions:
+      - id: FORtex
+        name: Formate cytoplasm-to-extracellular diffusion
+        equation: "for_c --> for_e"
+        bounds: [0, 1000]
+      - id: EX_for_e
+        name: Formate exchange
+        equation: "for_e <=>"
+        bounds: [0, 1000]
+    references:
+      - BiGG:for_c
+      - BiGG:EX_for_e
+
+metadata:
+  targets: gut anaerobes; AGORA2 / CarveMe auto-reconstructions
+  limitations: >-
+    Transport is simple diffusion, not proton-coupled. Internal synthesis
+    pathways are assumed present in the model.

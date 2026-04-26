@@ -1,0 +1,122 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gemfitcom"
+version = "0.1.0"
+description = "GEM + Fit + Community: calibrate genome-scale metabolic models from in vitro growth and metabolite data, and simulate multi-strain metabolic interactions."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Shijia Li", email = "shijiali13579@gmail.com" }]
+keywords = [
+    "microbiome",
+    "genome-scale-metabolic-model",
+    "FBA",
+    "dFBA",
+    "MICOM",
+    "cross-feeding",
+    "cobra",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "cobra>=0.29",
+    "micom>=0.35",
+    "scipy>=1.11",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "networkx>=3.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+    "typer>=0.12",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.5",
+    "pre-commit>=3.7",
+]
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.25",
+]
+
+[project.scripts]
+gemfitcom = "gemfitcom.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/Lishijiagg/gemfitcom"
+Repository = "https://github.com/Lishijiagg/gemfitcom"
+Issues = "https://github.com/Lishijiagg/gemfitcom/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gemfitcom"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/configs",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line-too-long — handled by formatter
+    "N815",   # mixedCase field names — we keep SI unit casing (mM, gDW, mL)
+    # Unicode math notation in scientific docstrings/labels is intentional
+    # (·, ², ×, −, Σ, Δ, μ). Same spirit as the N815 carve-out above.
+    "RUF001",
+    "RUF002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["N802", "N803"]
+# Typer idiomatically uses `typer.Option(...)` / `typer.Argument(...)` as
+# default values, which triggers B008 — suppress it for the CLI module only.
+"src/gemfitcom/cli.py" = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:cobra.*",
+    "ignore::DeprecationWarning:optlang.*",
+]
