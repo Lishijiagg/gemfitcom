@@ -28,6 +28,25 @@ def test_load_hplc_long_canonical(tmp_path: Path) -> None:
     loaded = load_hplc(path)
     assert list(loaded.columns) == list(HPLC_COLUMNS)
     assert len(loaded) == 3
+    # time_h is optional — endpoint-only files get NaN here.
+    assert loaded["time_h"].isna().all()
+
+
+def test_load_hplc_with_time_series(tmp_path: Path) -> None:
+    df = pd.DataFrame(
+        {
+            "time_h": [0.0, 6.0, 14.0, 0.0, 6.0, 14.0],
+            "carbon_source": ["GMC"] * 6,
+            "metabolite": ["acetate", "acetate", "acetate", "butyrate", "butyrate", "butyrate"],
+            "value_mM": [0.0, 1.5, 5.2, 0.0, 0.4, 2.1],
+            "replicate": [1, 1, 1, 1, 1, 1],
+        }
+    )
+    path = _write_csv(tmp_path / "hplc.csv", df)
+    loaded = load_hplc(path)
+    assert list(loaded.columns) == list(HPLC_COLUMNS)
+    assert loaded["time_h"].tolist() == [0.0, 6.0, 14.0, 0.0, 6.0, 14.0]
+    assert loaded["time_h"].notna().all()
 
 
 def test_load_hplc_clips_negatives_by_default(tmp_path: Path) -> None:

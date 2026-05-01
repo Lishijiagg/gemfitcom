@@ -1,10 +1,17 @@
 """HPLC metabolite measurement loader.
 
 Canonical long format:
+    time_h : float        (optional — NaN if file omits it; treat as endpoint)
     carbon_source : str
     metabolite : str
     value_mM : float
-    replicate : int   (defaults to 1 when absent)
+    replicate : int       (defaults to 1 when absent)
+
+Real HPLC runs sample multiple time points and report multiple metabolites
+per injection, so the canonical form is a time series. ``time_h`` is kept
+optional for backwards compatibility with single-endpoint tables: a missing
+column is filled with NaN and downstream code treats those rows as a single
+endpoint snapshot.
 
 Use :func:`hplc_wide_to_long` to convert wide tables (rows = carbon sources,
 columns = metabolites) into the canonical form before calling
@@ -17,7 +24,13 @@ from pathlib import Path
 
 import pandas as pd
 
-HPLC_COLUMNS: tuple[str, ...] = ("carbon_source", "metabolite", "value_mM", "replicate")
+HPLC_COLUMNS: tuple[str, ...] = (
+    "time_h",
+    "carbon_source",
+    "metabolite",
+    "value_mM",
+    "replicate",
+)
 _REQUIRED_INPUT_COLUMNS: tuple[str, ...] = ("carbon_source", "metabolite", "value_mM")
 
 
@@ -39,7 +52,9 @@ def load_hplc(
             not physically meaningful.
 
     Returns:
-        DataFrame with columns ``carbon_source, metabolite, value_mM, replicate``.
+        DataFrame with columns
+        ``time_h, carbon_source, metabolite, value_mM, replicate``.
+        ``time_h`` is NaN for endpoint-only files that omit the column.
 
     Raises:
         FileNotFoundError: if ``path`` does not exist.
@@ -58,10 +73,13 @@ def load_hplc(
             "first if your file is wide."
         )
 
+    if "time_h" not in df.columns:
+        df = df.assign(time_h=pd.NA)
     if "replicate" not in df.columns:
         df = df.assign(replicate=1)
 
     df = df.loc[:, list(HPLC_COLUMNS)].copy()
+    df["time_h"] = pd.to_numeric(df["time_h"], errors="coerce")
     df["carbon_source"] = df["carbon_source"].astype(str)
     df["metabolite"] = df["metabolite"].astype(str)
     df["value_mM"] = df["value_mM"].astype(float)
@@ -101,6 +119,7 @@ def hplc_wide_to_long(
                 val = 0.0
             records.append(
                 {
+                    "time_h": pd.NA,
                     "carbon_source": str(carbon_source),
                     "metabolite": str(metabolite),
                     "value_mM": val,

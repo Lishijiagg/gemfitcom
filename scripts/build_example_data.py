@@ -38,9 +38,16 @@ T_TOTAL_H = 14.0
 DT_H = 0.25
 N_REPLICATES = 3
 OD_NOISE_SIGMA = 0.05  # 5% Gaussian noise on OD
-HPLC_NOISE_SIGMA = 0.05  # 5% Gaussian noise on HPLC endpoint
+HPLC_NOISE_SIGMA = 0.05  # 5% Gaussian noise on HPLC measurements
 BIOMASS_PER_OD = 0.35  # gDW / L per OD600 unit (typical bacterial conversion)
-SAMPLING_TIMES_H = np.array([0, 1, 2, 3, 4, 6, 8, 10, 12, 14], dtype=float)
+OD_SAMPLING_TIMES_H = np.array([0, 1, 2, 3, 4, 6, 8, 10, 12, 14], dtype=float)
+# HPLC is sampled more sparsely than OD in real experiments (each injection
+# costs ~30 min of instrument time); pick t=0 baseline + mid-log + endpoint.
+HPLC_SAMPLING_TIMES_H = np.array([0, 6, 14], dtype=float)
+# Metabolites we report on the HPLC panel. The toy strain only produces
+# acetate; butyrate / propionate / lactate are baseline-zero "not detected"
+# columns to mimic a real SCFA HPLC method that screens multiple analytes.
+HPLC_METABOLITES: tuple[str, ...] = ("acetate", "butyrate", "propionate", "lactate")
 RNG_SEED = 0
 
 
@@ -138,13 +145,13 @@ def simulate_truth() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def make_od_csv(time_h: np.ndarray, biomass: np.ndarray, rng: np.random.Generator) -> pd.DataFrame:
     """OD long-form: time_h, carbon_source, replicate, od (3 noisy replicates)."""
-    od_truth = np.interp(SAMPLING_TIMES_H, time_h, biomass) / BIOMASS_PER_OD
+    od_truth = np.interp(OD_SAMPLING_TIMES_H, time_h, biomass) / BIOMASS_PER_OD
     rows: list[dict[str, object]] = []
     for rep in range(1, N_REPLICATES + 1):
         # Multiplicative noise — keeps OD strictly positive and proportional.
-        noise = rng.normal(loc=1.0, scale=OD_NOISE_SIGMA, size=SAMPLING_TIMES_H.shape)
+        noise = rng.normal(loc=1.0, scale=OD_NOISE_SIGMA, size=OD_SAMPLING_TIMES_H.shape)
         od_rep = np.clip(od_truth * noise, a_min=1e-4, a_max=None)
-        for t, od in zip(SAMPLING_TIMES_H, od_rep, strict=True):
+        for t, od in zip(OD_SAMPLING_TIMES_H, od_rep, strict=True):
             rows.append(
                 {
                     "time_h": float(t),
@@ -159,21 +166,40 @@ def make_od_csv(time_h: np.ndarray, biomass: np.ndarray, rng: np.random.Generato
 def make_hplc_csv(
     acetate_conc: np.ndarray, time_h: np.ndarray, rng: np.random.Generator
 ) -> pd.DataFrame:
-    """HPLC endpoint long-form: carbon_source, metabolite, value_mM, replicate."""
-    final_ac = float(np.interp(T_TOTAL_H, time_h, acetate_conc))
+    """HPLC time-series long-form.
+
+    Columns: ``time_h, carbon_source, metabolite, value_mM, replicate``.
+
+    The toy strain only produces acetate, so acetate concentrations come from
+    the dFBA truth trajectory; butyrate / propionate / lactate are reported
+    at baseline zero (with tiny noise floor) to mimic a typical SCFA HPLC
+    panel that screens for multiple analytes whether or not they're present.
+    """
+    truth_at_sample = np.interp(HPLC_SAMPLING_TIMES_H, time_h, acetate_conc)
     rows: list[dict[str, object]] = []
     for rep in range(1, N_REPLICATES + 1):
-        noisy = final_ac * rng.normal(loc=1.0, scale=HPLC_NOISE_SIGMA)
-        rows.append(
-            {
-                "carbon_source": "glc__D",
-                "metabolite": "acetate",
-                "value_mM": max(0.0, float(noisy)),
-                "replicate": rep,
-            }
-        )
+        for t_idx, t in enumerate(HPLC_SAMPLING_TIMES_H):
+            for met in HPLC_METABOLITES:
+                if met == "acetate":
+                    base = float(truth_at_sample[t_idx])
+                    noisy = base * rng.normal(loc=1.0, scale=HPLC_NOISE_SIGMA)
+                    val = max(0.0, float(noisy))
+                else:
+                    # Not produced by the toy strain — report a small noise
+                    # floor so the column is realistic (HPLC integrators
+                    # rarely return exact zero) but stays below detection.
+                    val = max(0.0, float(rng.normal(loc=0.0, scale=0.02)))
+                rows.append(
+                    {
+                        "time_h": float(t),
+                        "carbon_source": "glc__D",
+                        "metabolite": met,
+                        "value_mM": val,
+                        "replicate": rep,
+                    }
+                )
     return pd.DataFrame.from_records(
-        rows, columns=["carbon_source", "metabolite", "value_mM", "replicate"]
+        rows, columns=["time_h", "carbon_source", "metabolite", "value_mM", "replicate"]
     )
 
 
@@ -191,17 +217,23 @@ with **truth parameters** `Vmax = {TRUE_VMAX}` mmol/gDW/h and `Km = {TRUE_KM}`
 mM, then samples the trajectory with multiplicative Gaussian noise:
 
 * OD: {N_REPLICATES} replicates, sigma = {OD_NOISE_SIGMA}
-* HPLC: {N_REPLICATES} replicates of the endpoint acetate, sigma = {HPLC_NOISE_SIGMA}
-* Sampling times (hours): {SAMPLING_TIMES_H.astype(int).tolist()}
+* OD sampling times (hours): {OD_SAMPLING_TIMES_H.astype(int).tolist()}
+* HPLC: {N_REPLICATES} replicates × {len(HPLC_METABOLITES)} metabolites
+  ({list(HPLC_METABOLITES)}), sigma = {HPLC_NOISE_SIGMA}
+* HPLC sampling times (hours): {HPLC_SAMPLING_TIMES_H.astype(int).tolist()}
 * Total horizon: {T_TOTAL_H} h, simulation dt: {DT_H} h
 * OD-to-biomass conversion: {BIOMASS_PER_OD} gDW per OD unit
 * RNG seed: {RNG_SEED}
+
+The HPLC panel includes butyrate / propionate / lactate at a near-zero
+"not detected" noise floor — the toy strain only produces acetate, but a
+realistic SCFA HPLC method screens multiple analytes per injection.
 
 ## Files
 
 * `{STRAIN_NAME}.xml` — toy SBML (six reactions, three compartments)
 * `{STRAIN_NAME}_od.csv` — long-form OD growth curve
-* `{STRAIN_NAME}_hplc.csv` — long-form HPLC endpoint table
+* `{STRAIN_NAME}_hplc.csv` — long-form HPLC time series (multiple metabolites)
 
 ## Regenerating
 

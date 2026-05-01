@@ -11,17 +11,23 @@ with **truth parameters** `Vmax = 4.0` mmol/gDW/h and `Km = 2.0`
 mM, then samples the trajectory with multiplicative Gaussian noise:
 
 * OD: 3 replicates, sigma = 0.05
-* HPLC: 3 replicates of the endpoint acetate, sigma = 0.05
-* Sampling times (hours): [0, 1, 2, 3, 4, 6, 8, 10, 12, 14]
+* OD sampling times (hours): [0, 1, 2, 3, 4, 6, 8, 10, 12, 14]
+* HPLC: 3 replicates × 4 metabolites
+  (['acetate', 'butyrate', 'propionate', 'lactate']), sigma = 0.05
+* HPLC sampling times (hours): [0, 6, 14]
 * Total horizon: 14.0 h, simulation dt: 0.25 h
 * OD-to-biomass conversion: 0.35 gDW per OD unit
 * RNG seed: 0
+
+The HPLC panel includes butyrate / propionate / lactate at a near-zero
+"not detected" noise floor — the toy strain only produces acetate, but a
+realistic SCFA HPLC method screens multiple analytes per injection.
 
 ## Files
 
 * `toy_acetogen.xml` — toy SBML (six reactions, three compartments)
 * `toy_acetogen_od.csv` — long-form OD growth curve
-* `toy_acetogen_hplc.csv` — long-form HPLC endpoint table
+* `toy_acetogen_hplc.csv` — long-form HPLC time series (multiple metabolites)
 
 ## Regenerating
 

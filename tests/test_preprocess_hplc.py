@@ -78,3 +78,38 @@ def test_hplc_missing_columns_raise() -> None:
         average_replicates(bad)
     with pytest.raises(ValueError, match="missing required columns"):
         hplc_long_to_wide(bad)
+
+
+def test_average_replicates_groups_by_time_when_present() -> None:
+    df = pd.DataFrame(
+        {
+            "time_h": [0.0, 0.0, 6.0, 6.0, 14.0, 14.0],
+            "carbon_source": ["GMC"] * 6,
+            "metabolite": ["acetate"] * 6,
+            "value_mM": [0.0, 0.1, 1.4, 1.6, 5.0, 5.4],
+            "replicate": [1, 2, 1, 2, 1, 2],
+        }
+    )
+    out = average_replicates(df)
+
+    assert "time_h" in out.columns
+    assert len(out) == 3
+    t14 = out.query("time_h == 14.0").iloc[0]
+    assert t14["mean_mM"] == pytest.approx(5.2)
+    assert t14["n_replicates"] == 2
+
+
+def test_average_replicates_ignores_time_when_all_nan() -> None:
+    df = pd.DataFrame(
+        {
+            "time_h": [pd.NA, pd.NA, pd.NA, pd.NA],
+            "carbon_source": ["GMC", "GMC", "LNT", "LNT"],
+            "metabolite": ["acetate", "acetate", "acetate", "acetate"],
+            "value_mM": [5.0, 5.4, 6.0, 6.2],
+            "replicate": [1, 2, 1, 2],
+        }
+    )
+    out = average_replicates(df)
+
+    assert "time_h" not in out.columns
+    assert len(out) == 2

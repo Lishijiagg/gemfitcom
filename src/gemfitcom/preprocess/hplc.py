@@ -1,15 +1,18 @@
-"""HPLC endpoint-measurement preprocessing.
+"""HPLC measurement preprocessing.
 
 Operates on the canonical long format produced by :mod:`gemfitcom.io.hplc`::
 
+    time_h : float        (optional — NaN means "endpoint, no time tag")
     carbon_source : str
     metabolite : str
     value_mM : float
     replicate : int
 
-HPLC values in this pipeline are endpoint snapshots (single time), so the
-preprocessing is limited to replicate aggregation and layout conversion for
-downstream kinetics fitting.
+HPLC values in this pipeline can be either time-series (multiple sampling
+times per metabolite) or endpoint snapshots (single time, ``time_h`` NaN).
+Preprocessing handles replicate aggregation and layout conversion for
+downstream kinetics fitting; when ``time_h`` is present and non-NaN, the
+``(time_h, carbon_source, metabolite)`` triple is the natural grouping key.
 """
 
 from __future__ import annotations
@@ -18,18 +21,25 @@ import pandas as pd
 
 
 def average_replicates(df: pd.DataFrame) -> pd.DataFrame:
-    """Collapse replicates to mean/sd/n per ``(carbon_source, metabolite)``.
+    """Collapse replicates to mean/sd/n.
+
+    Grouping key is ``(time_h, carbon_source, metabolite)`` when ``time_h``
+    is present and non-empty, otherwise ``(carbon_source, metabolite)``.
 
     Args:
         df: Long-format HPLC DataFrame.
 
     Returns:
         DataFrame with columns
-        ``carbon_source, metabolite, mean_mM, sd_mM, n_replicates``.
+        ``[time_h,] carbon_source, metabolite, mean_mM, sd_mM, n_replicates``.
         ``sd_mM`` is NaN for single-replicate groups.
     """
     _require_columns(df, ("carbon_source", "metabolite", "value_mM"))
-    grouped = df.groupby(["carbon_source", "metabolite"], sort=True, as_index=False)
+    has_time = "time_h" in df.columns and df["time_h"].notna().any()
+    keys = (
+        ["time_h", "carbon_source", "metabolite"] if has_time else ["carbon_source", "metabolite"]
+    )
+    grouped = df.groupby(keys, sort=True, as_index=False, dropna=False)
     return grouped["value_mM"].agg(mean_mM="mean", sd_mM="std", n_replicates="count")
 
 
