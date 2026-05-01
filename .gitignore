@@ -65,6 +65,10 @@ Mono_culture_ODs/
 !/data/examples/
 !/data/examples/**
 
+# But keep large SBML models out of git — they're fetched on demand by
+# `scripts/fetch_realistic_example.py`. Tiny CSV/markdown stay tracked.
+data/examples/realistic/*.xml
+
 # Documentation build output
 site/
 site-zh/
