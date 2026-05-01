@@ -6,7 +6,34 @@
 - An LP solver. GLPK (bundled with cobra) works out of the box; CPLEX is
   optional and noticeably faster on large community models.
 
-## From source
+Pick the install path that matches your role.
+
+## Recommended for users — conda/mamba env + pip
+
+This is the most reliable path on Windows and macOS because conda-forge
+ships prebuilt wheels for the heavier scientific stack (`numpy`, `scipy`,
+`cobra`, `micom`'s native deps), avoiding compiler issues:
+
+```bash
+mamba create -n gemfitcom python=3.11
+mamba activate gemfitcom
+pip install git+https://github.com/Lishijiagg/gemfitcom.git
+```
+
+(Substitute `conda` for `mamba` if you don't have mamba / micromamba — mamba
+is just much faster at solving the environment.)
+
+## Quick install — pip only
+
+If you already have a working Python environment:
+
+```bash
+pip install git+https://github.com/Lishijiagg/gemfitcom.git
+```
+
+A PyPI release (`pip install gemfitcom`) will follow once the API stabilizes.
+
+## For contributors — editable install with dev extras
 
 ```bash
 git clone https://github.com/Lishijiagg/gemfitcom

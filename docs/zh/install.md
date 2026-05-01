@@ -6,7 +6,34 @@
 - 一个 LP 求解器。GLPK（cobra 自带）开箱即用；CPLEX 是可选项，
   在大型群落模型上明显更快。
 
-## 从源码安装
+按你的角色挑一种安装方式。
+
+## 推荐用户使用 —— conda/mamba 环境 + pip
+
+这是 Windows 和 macOS 上最稳的方式，因为 conda-forge 提供
+`numpy`/`scipy`/`cobra` 以及 `micom` 原生依赖的预编译包，
+不会卡在编译问题上：
+
+```bash
+mamba create -n gemfitcom python=3.11
+mamba activate gemfitcom
+pip install git+https://github.com/Lishijiagg/gemfitcom.git
+```
+
+（如果没装 mamba/micromamba，可以把 `mamba` 换成 `conda` —— mamba 只是
+解算环境时快很多。）
+
+## 快速安装 —— 仅 pip
+
+如果你已经有一个能用的 Python 环境：
+
+```bash
+pip install git+https://github.com/Lishijiagg/gemfitcom.git
+```
+
+API 稳定后会发布到 PyPI（届时可直接 `pip install gemfitcom`）。
+
+## 贡献者 —— editable 安装 + dev extras
 
 ```bash
 git clone https://github.com/Lishijiagg/gemfitcom
