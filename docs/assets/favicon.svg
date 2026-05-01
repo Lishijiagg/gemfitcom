@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" role="img" aria-label="GemFitCom">
+  <title>GemFitCom</title>
+
+  <!-- Triangular network — simplified, no curve at favicon scale -->
+  <path d="M 128 50 L 50 180 L 206 180 Z"
+        stroke="#3F51B5" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- Three nodes — enlarged so 16/32px favicons stay legible -->
+  <circle cx="128" cy="50" r="30" fill="#3F51B5"/>
+  <circle cx="50" cy="180" r="30" fill="#3F51B5"/>
+  <circle cx="206" cy="180" r="30" fill="#3F51B5"/>
+</svg>

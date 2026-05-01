@@ -1,4 +1,6 @@
-# GemFitCom
+<p align="center">
+  <img src="docs/assets/logo-wordmark.svg" alt="GemFitCom" width="540">
+</p>
 
 **GEM + Fit + Community** — a Python pipeline to calibrate genome-scale metabolic models (GEMs) of gut bacterial strains against in vitro growth and metabolite data, and to simulate multi-strain metabolic interactions.
 
