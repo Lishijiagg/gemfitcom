@@ -73,3 +73,25 @@ def diffuse_step(
     """
     # L @ C.T has shape (n_grid, n_metabolites); transpose back to match C.
     return C + dt * D[:, None] * (L @ C.T).T
+
+
+def cfl_dt_max(dx: float, D_max: float, safety: float = 0.4) -> float:
+    """Maximum stable dt for explicit FTCS in 1D.
+
+    The strict limit is dt <= dx**2 / (2 * D_max); `safety` (default 0.4)
+    pulls back from the boundary for robustness.
+    """
+    if D_max <= 0:
+        return float("inf")
+    return safety * dx * dx / (2.0 * D_max)
+
+
+def check_cfl(dt: float, dx: float, D_max: float, safety: float = 0.4) -> None:
+    """Raise RuntimeError if `dt` violates the CFL stability limit."""
+    dt_limit = cfl_dt_max(dx, D_max, safety)
+    if dt > dt_limit:
+        raise RuntimeError(
+            f"dt={dt} violates CFL stability "
+            f"(dx={dx}, D_max={D_max}, safety={safety}). "
+            f"Reduce dt to <= {dt_limit:.4g} or coarsen the grid."
+        )

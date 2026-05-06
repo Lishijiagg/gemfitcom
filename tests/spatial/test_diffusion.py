@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from gemfitcom.spatial.diffusion import build_laplacian_1d, diffuse_step
+from gemfitcom.spatial.diffusion import build_laplacian_1d, cfl_dt_max, check_cfl, diffuse_step
 
 
 def test_laplacian_returns_csr_matrix() -> None:
@@ -98,3 +98,26 @@ def test_diffuse_step_neumann_conserves_total_one_step() -> None:
     D = np.array([1e-3])
     out = diffuse_step(C, L, D, dt=0.1)
     assert out.sum() == pytest.approx(C.sum(), abs=1e-12)
+
+
+def test_cfl_dt_max_formula() -> None:
+    # safety=1 corresponds to the marginal CFL limit
+    assert cfl_dt_max(dx=0.1, D_max=1e-3, safety=1.0) == pytest.approx(0.01 / 2e-3)
+
+
+def test_cfl_dt_max_default_safety_is_0_4() -> None:
+    assert cfl_dt_max(dx=0.1, D_max=1e-3) == pytest.approx(0.4 * 0.01 / 2e-3)
+
+
+def test_check_cfl_passes_when_dt_within_limit() -> None:
+    check_cfl(dt=1.0, dx=0.1, D_max=1e-3, safety=0.4)  # well below limit
+
+
+def test_check_cfl_raises_when_dt_too_large() -> None:
+    with pytest.raises(RuntimeError, match="CFL"):
+        check_cfl(dt=100.0, dx=0.1, D_max=1.0, safety=0.4)
+
+
+def test_check_cfl_error_message_includes_suggested_dt() -> None:
+    with pytest.raises(RuntimeError, match=r"Reduce dt to"):
+        check_cfl(dt=100.0, dx=0.1, D_max=1.0)
