@@ -51,3 +51,25 @@ def build_laplacian_1d(
         L[-1, -2] = 0.0
 
     return (L / (dx * dx)).tocsr()
+
+
+def diffuse_step(
+    C: np.ndarray,
+    L: sp.csr_matrix,
+    D: np.ndarray,
+    dt: float,
+) -> np.ndarray:
+    """Explicit FTCS diffusion step.
+
+    Args:
+        C: shape (n_metabolites, n_grid), current concentrations.
+        L: sparse (n_grid, n_grid) Laplacian from `build_laplacian_1d`.
+        D: shape (n_metabolites,), per-metabolite diffusion coefficients.
+        dt: time step.
+
+    Returns:
+        New concentration array of shape (n_metabolites, n_grid). Does not
+        mutate the input.
+    """
+    # L @ C.T has shape (n_grid, n_metabolites); transpose back to match C.
+    return C + dt * D[:, None] * (L @ C.T).T
