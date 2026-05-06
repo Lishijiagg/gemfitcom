@@ -112,6 +112,10 @@ ignore = [
 # Typer idiomatically uses `typer.Option(...)` / `typer.Argument(...)` as
 # default values, which triggers B008 — suppress it for the CLI module only.
 "src/gemfitcom/cli.py" = ["B008"]
+# Spatial PDE-FBA code uses mathematical matrix/vector notation (C, B, D, L, dx, dt)
+# in function args, locals, and tests. Same spirit as the N815 carve-out for SI units.
+"src/gemfitcom/spatial/*" = ["N803", "N806"]
+"tests/spatial/*" = ["N806"]
 
 [tool.ruff.format]
 quote-style = "double"
