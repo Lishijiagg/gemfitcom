@@ -121,3 +121,36 @@ def test_check_cfl_raises_when_dt_too_large() -> None:
 def test_check_cfl_error_message_includes_suggested_dt() -> None:
     with pytest.raises(RuntimeError, match=r"Reduce dt to"):
         check_cfl(dt=100.0, dx=0.1, D_max=1.0)
+
+
+def test_diffuse_step_matches_analytical_gaussian() -> None:
+    """Gaussian initial condition → Gaussian solution, sigma grows as sqrt(sigma0**2 + 2Dt).
+
+    Domain is wide enough that the pulse never reaches the boundaries during
+    the test window, so closed BCs don't pollute the comparison.
+    """
+    n_grid = 201
+    length = 1.0
+    dx = length / (n_grid - 1)
+    D = 1.0e-3
+    sigma0 = 0.05
+    center = 0.5
+    t_end = 0.1
+
+    x = np.linspace(0.0, length, n_grid)
+    C = np.exp(-((x - center) ** 2) / (2.0 * sigma0**2))[None, :]  # shape (1, n_grid)
+
+    L = build_laplacian_1d(n_grid, dx)
+    D_arr = np.array([D])
+    dt = cfl_dt_max(dx, D, safety=0.4)
+    n_steps = int(np.ceil(t_end / dt))
+    dt = t_end / n_steps  # exact match for t_end
+
+    for _ in range(n_steps):
+        C = diffuse_step(C, L, D_arr, dt)
+
+    sigma_t = np.sqrt(sigma0**2 + 2.0 * D * t_end)
+    expected = (sigma0 / sigma_t) * np.exp(-((x - center) ** 2) / (2.0 * sigma_t**2))
+
+    rel_error = np.max(np.abs(C[0] - expected)) / np.max(expected)
+    assert rel_error < 0.01, f"max relative error {rel_error:.4g} exceeds 1%"
