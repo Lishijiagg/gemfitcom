@@ -81,5 +81,62 @@ results/
 .env.*
 !.env.example
 
-# Claude Code per-user local settings (project-shared settings.json is fine to commit)
+# Claude Code per-user settings (plugin choices vary per developer — don't commit either)
+.claude/settings.json
 .claude/settings.local.json
+
+# R session history (any directory)
+.Rhistory
+**/.Rhistory
+
+# Personal launcher scripts (reads API key from %USERPROFILE%\.anthropic_key — never commit)
+start-claude.ps1
+
+# Personal development log (Chinese filename)
+开发日志.md
+
+# Skills installed via `npx skills add ...` (per-developer tooling, not project code).
+# The installer drops files in many places: real files in .agents/, plus symlinks
+# under skills/, .claude/skills/, and a per-agent dir for every supported AI agent.
+.agents/
+/skills/
+skills-lock.json
+.claude/skills/
+# Per-agent symlink directories created by the skills installer
+.adal/
+.aider-desk/
+.augment/
+.bob/
+.codeartsdoer/
+.codebuddy/
+.codemaker/
+.codestudio/
+.commandcode/
+.continue/
+.cortex/
+.crush/
+.devin/
+.factory/
+.forge/
+.goose/
+.hermes/
+.iflow/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.rovodev/
+.tabnine/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
