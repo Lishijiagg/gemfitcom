@@ -8,14 +8,13 @@ substrate uptake at a given local concentration vector.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, get_args
 
 import numpy as np
 
 from gemfitcom.kinetics.mm import michaelis_menten
 
 ExchangeMode = Literal["uptake_only", "bidirectional"]
-_VALID_MODES: tuple[ExchangeMode, ...] = ("uptake_only", "bidirectional")
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,8 +25,12 @@ class ExchangeEntry:
         exchange_id: Cobra exchange reaction id (e.g. ``"EX_glc__D_e"``).
         vmax: Maximum uptake rate (mmol / gDW / h). Must be > 0.
         km: Half-saturation concentration (mM). Must be > 0.
-        mode: ``"uptake_only"`` writes only the lower bound; ``"bidirectional"``
-            also caps the upper bound (secretion) with the same MM expression.
+        mode: Either ``"uptake_only"`` (default) or ``"bidirectional"``. This field
+            tags how the per-cell FBA bound applier should treat the exchange — it is
+            NOT consumed by :meth:`mm_upper_bound` itself (which just returns the
+            MM-derived magnitude). The reaction engine (Task 7+) reads this to decide
+            whether to write only ``lower_bound`` (uptake) or both ``lower_bound`` and
+            ``upper_bound`` (bidirectional).
     """
 
     exchange_id: str
@@ -40,15 +43,26 @@ class ExchangeEntry:
             raise ValueError(f"{self.exchange_id}: vmax must be > 0, got {self.vmax}")
         if self.km <= 0:
             raise ValueError(f"{self.exchange_id}: km must be > 0, got {self.km}")
-        if self.mode not in _VALID_MODES:
+        valid_modes = get_args(ExchangeMode)
+        if self.mode not in valid_modes:
             raise ValueError(
-                f"{self.exchange_id}: mode must be one of {_VALID_MODES}, got {self.mode!r}"
+                f"{self.exchange_id}: mode must be one of {valid_modes}, got {self.mode!r}"
             )
 
 
 @dataclass(frozen=True, slots=True)
 class ExchangeKinetics:
-    """All exchange kinetics for a single species."""
+    """All exchange kinetics for a single species.
+
+    Attributes:
+        species: Logical species name (e.g. ``"ecoli"``); informational only.
+        entries: Ordered tuple of :class:`ExchangeEntry`, one per substrate
+            the species transports through an exchange reaction. The order
+            is load-bearing — index ``k`` in ``entries`` matches index ``k``
+            in the ``C_local`` array passed to :meth:`mm_upper_bound`, and
+            matches the order in which bounds are written into cobra by the
+            per-cell FBA solver downstream.
+    """
 
     species: str
     entries: tuple[ExchangeEntry, ...]

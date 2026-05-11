@@ -1,4 +1,4 @@
-"""Tests for spatial/kinetics.py — ExchangeKinetics + YAML loader + GEM URI."""
+"""Tests for spatial/kinetics.py — ExchangeEntry + ExchangeKinetics."""
 
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ class TestExchangeKineticsBasics:
                 ExchangeEntry(exchange_id="EX_b_e", vmax=20.0, km=1.0, mode="uptake_only"),
             ),
         )
-        with pytest.raises(ValueError, match="length"):
+        with pytest.raises(ValueError, match="does not match n_exchanges"):
             ek.mm_upper_bound(np.array([0.5]))
 
     def test_invalid_vmax_rejected(self):
@@ -73,6 +73,16 @@ class TestExchangeKineticsBasics:
     def test_invalid_mode_rejected(self):
         with pytest.raises(ValueError, match="mode"):
             ExchangeEntry(exchange_id="EX_a_e", vmax=10.0, km=0.5, mode="weird_mode")
+
+    def test_bidirectional_mode_stored(self):
+        e = ExchangeEntry(exchange_id="EX_a_e", vmax=10.0, km=0.5, mode="bidirectional")
+        assert e.mode == "bidirectional"
+
+        ek = ExchangeKinetics(species="x", entries=(e,))
+        assert ek.entries[0].mode == "bidirectional"
+        # mm_upper_bound does NOT consume mode; just returns MM magnitude
+        bounds = ek.mm_upper_bound(np.array([1000.0]))
+        assert np.isclose(bounds[0], 10.0, rtol=1e-3)
 
     def test_duplicate_exchange_ids_rejected(self):
         with pytest.raises(ValueError, match="duplicate"):
