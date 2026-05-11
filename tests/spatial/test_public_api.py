@@ -98,3 +98,35 @@ def test_pr1_integration_smoke(tmp_path: Path) -> None:
     assert len(snaps) >= 1
     restored = spatial.SnapshotRecorder.load(snaps[-1])
     assert restored.t > 0.0
+
+
+class TestPr2PublicApi:
+    def test_pr2_kinetics_classes_exported(self):
+        from gemfitcom.spatial import (
+            ExchangeEntry,
+            ExchangeKinetics,
+            load_kinetics_yaml,
+            resolve_gem,
+        )
+
+        assert ExchangeKinetics is not None
+        assert ExchangeEntry is not None
+        assert callable(load_kinetics_yaml)
+        assert callable(resolve_gem)
+
+    def test_pr2_reaction_classes_exported(self):
+        from gemfitcom.spatial import ReactionEngine, SerialBackend
+
+        assert ReactionEngine is not None
+        assert SerialBackend is not None
+
+    def test_pr2_config_classes_exported(self):
+        from gemfitcom.spatial import SpeciesConfig, SpeciesInitConfig
+
+        assert SpeciesConfig is not None
+        assert SpeciesInitConfig is not None
+
+    def test_pr2_init_field_helper_exported(self):
+        from gemfitcom.spatial import build_field_1d
+
+        assert callable(build_field_1d)
