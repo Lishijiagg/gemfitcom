@@ -1,4 +1,4 @@
-"""Tests for spatial/kinetics.py — ExchangeEntry + ExchangeKinetics."""
+"""Tests for spatial/kinetics.py — ExchangeEntry + ExchangeKinetics + YAML loader."""
 
 from __future__ import annotations
 
@@ -93,3 +93,54 @@ class TestExchangeKineticsBasics:
                     ExchangeEntry(exchange_id="EX_a_e", vmax=20.0, km=1.0, mode="uptake_only"),
                 ),
             )
+
+
+class TestLoadKineticsYaml:
+    def test_load_minimal(self, tmp_path):
+        yaml_path = tmp_path / "ecoli.yaml"
+        yaml_path.write_text(
+            "species: ecoli\n"
+            "exchanges:\n"
+            "  EX_glc__D_e: {v_max: 10.0, K_m: 0.5}\n"
+            "  EX_o2_e:     {v_max: 15.0, K_m: 0.005}\n"
+        )
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        ek = load_kinetics_yaml(yaml_path)
+        assert ek.species == "ecoli"
+        assert ek.exchange_ids == ("EX_glc__D_e", "EX_o2_e")
+        assert ek.entries[0].vmax == 10.0
+        assert ek.entries[1].km == 0.005
+        assert all(e.mode == "uptake_only" for e in ek.entries)
+
+    def test_load_with_bidirectional_mode(self, tmp_path):
+        yaml_path = tmp_path / "k.yaml"
+        yaml_path.write_text(
+            "species: x\n" "exchanges:\n" "  EX_ac_e: {v_max: 5.0, K_m: 0.1, mode: bidirectional}\n"
+        )
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        ek = load_kinetics_yaml(yaml_path)
+        assert ek.entries[0].mode == "bidirectional"
+
+    def test_missing_file_raises(self, tmp_path):
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        with pytest.raises(FileNotFoundError):
+            load_kinetics_yaml(tmp_path / "nope.yaml")
+
+    def test_missing_required_field_raises(self, tmp_path):
+        yaml_path = tmp_path / "bad.yaml"
+        yaml_path.write_text("species: x\n" "exchanges:\n" "  EX_a_e: {v_max: 1.0}\n")
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        with pytest.raises(KeyError, match="K_m"):
+            load_kinetics_yaml(yaml_path)
+
+    def test_top_level_species_required(self, tmp_path):
+        yaml_path = tmp_path / "bad.yaml"
+        yaml_path.write_text("exchanges:\n" "  EX_a_e: {v_max: 1.0, K_m: 0.1}\n")
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        with pytest.raises(KeyError, match="species"):
+            load_kinetics_yaml(yaml_path)

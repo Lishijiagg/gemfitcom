@@ -8,9 +8,11 @@ substrate uptake at a given local concentration vector.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, get_args
 
 import numpy as np
+import yaml
 
 from gemfitcom.kinetics.mm import michaelis_menten
 
@@ -96,3 +98,59 @@ class ExchangeKinetics:
         for k, entry in enumerate(self.entries):
             out[k] = float(michaelis_menten(C_local[k], entry.vmax, entry.km))
         return out
+
+
+def load_kinetics_yaml(path: str | Path) -> ExchangeKinetics:
+    """Load a per-species kinetics YAML into :class:`ExchangeKinetics`.
+
+    Expected schema (design doc §5.4)::
+
+        species: ecoli
+        exchanges:
+          EX_glc__D_e: {v_max: 10.0, K_m: 0.5}
+          EX_o2_e:     {v_max: 15.0, K_m: 0.005}
+          EX_ac_e:     {v_max: 5.0,  K_m: 0.1, mode: bidirectional}
+
+    YAML keys are ``v_max`` / ``K_m`` (scientific convention); the Python
+    dataclass uses lowercase ``vmax`` / ``km``.
+
+    Args:
+        path: Path to the kinetics YAML.
+
+    Returns:
+        :class:`ExchangeKinetics`.
+
+    Raises:
+        FileNotFoundError: if ``path`` does not exist.
+        KeyError: if a required field is missing.
+        ValueError: if a value is out of range (re-raised from ExchangeEntry).
+    """
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Kinetics YAML not found: {path}")
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: top-level YAML must be a mapping")
+    if "species" not in data:
+        raise KeyError(f"{path}: missing required field 'species'")
+    if "exchanges" not in data:
+        raise KeyError(f"{path}: missing required field 'exchanges'")
+
+    entries: list[ExchangeEntry] = []
+    for exch_id, params in data["exchanges"].items():
+        if not isinstance(params, dict):
+            raise ValueError(f"{path}: exchange {exch_id} must map to a dict")
+        if "v_max" not in params:
+            raise KeyError(f"{path}: exchange {exch_id} missing 'v_max'")
+        if "K_m" not in params:
+            raise KeyError(f"{path}: exchange {exch_id} missing 'K_m'")
+        entries.append(
+            ExchangeEntry(
+                exchange_id=exch_id,
+                vmax=float(params["v_max"]),
+                km=float(params["K_m"]),
+                mode=params.get("mode", "uptake_only"),
+            )
+        )
+    return ExchangeKinetics(species=data["species"], entries=tuple(entries))
