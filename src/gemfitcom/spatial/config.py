@@ -115,7 +115,7 @@ class SpatialConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: Path) -> SpatialConfig:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         cfg = cls(**data)
         if "species" in data and len(cfg.species) == 0:
