@@ -130,7 +130,7 @@ def load_kinetics_yaml(path: str | Path) -> ExchangeKinetics:
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"Kinetics YAML not found: {path}")
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: top-level YAML must be a mapping")
