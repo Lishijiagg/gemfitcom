@@ -114,3 +114,70 @@ def solve_cell(
         flux[met_idx] = float(sol.fluxes[exch_id])
 
     return SingleCellResult(mu=mu, flux=flux, infeasible=False)
+
+
+@dataclass
+class ReactionEngine:
+    """Per-step reaction orchestrator.
+
+    Attributes:
+        models: One :class:`cobra.Model` per species.
+        kinetics: One :class:`ExchangeKinetics` per species (order matches
+            ``models``).
+        metabolite_ids: Tuple of cobra metabolite ids tracked on the grid.
+            Exchange reactions resolve as ``f"EX_{met_id}"``.
+        backend: Implementation of the :class:`Backend` protocol.
+    """
+
+    models: list
+    kinetics: list[ExchangeKinetics]
+    metabolite_ids: tuple[str, ...]
+    backend: object
+
+    def __post_init__(self) -> None:
+        if len(self.models) != len(self.kinetics):
+            raise ValueError(
+                f"models length {len(self.models)} != kinetics length " f"{len(self.kinetics)}"
+            )
+
+    @property
+    def n_species(self) -> int:
+        return len(self.models)
+
+    @property
+    def n_metabolites(self) -> int:
+        return len(self.metabolite_ids)
+
+    def step(self, C: np.ndarray, B: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
+        """Compute (mu, flux) fields. Does NOT mutate ``C`` or ``B``.
+
+        ``dt`` is accepted for future overflow guards (Task 10) but not used
+        by the inner FBA call.
+        """
+        return self.backend.step(
+            models=self.models,
+            kinetics=self.kinetics,
+            metabolite_ids=self.metabolite_ids,
+            C=C,
+            B=B,
+        )
+
+    def apply_to_state(
+        self, C: np.ndarray, B: np.ndarray, dt: float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """One reaction substep — return updated ``(C, B)``.
+
+        Algorithm (spec §3.2)::
+
+            mu, flux = step(C, B, dt)
+            B_new = B * exp(mu * dt)
+            C_new = max(C + einsum('jix,ix->jx', flux, B) * dt, 0)
+
+        ``flux × B`` uses pre-update ``B`` (forward Euler on the reaction
+        substep, consistent with Lie splitting in the design doc).
+        """
+        mu, flux = self.step(C, B, dt)
+        B_new = B * np.exp(mu * dt)
+        dC = np.einsum("jix,ix->jx", flux, B) * dt
+        C_new = np.maximum(C + dC, 0.0)
+        return C_new, B_new

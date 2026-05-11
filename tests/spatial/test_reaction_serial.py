@@ -209,3 +209,67 @@ class TestSerialBackend:
                 C=C,
                 B=B,
             )
+
+
+class TestReactionEngine:
+    def test_engine_step_returns_correct_shapes(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(
+                ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),
+                ExchangeEntry("EX_o2_e", 15.0, 0.005, "uptake_only"),
+            ),
+        )
+        engine = ReactionEngine(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=("glc__D_e", "o2_e"),
+            backend=SerialBackend(),
+        )
+        C = np.array([[10.0, 5.0], [100.0, 100.0]])
+        B = np.array([[1.0e-3, 1.0e-3]])
+        mu, flux = engine.step(C, B, dt=0.1)
+        assert mu.shape == (1, 2)
+        assert flux.shape == (2, 1, 2)
+
+    def test_engine_rejects_mismatched_lengths(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(ExchangeEntry("EX_glc__D_e", 10.0, 0.5),),
+        )
+        with pytest.raises(ValueError, match="models"):
+            ReactionEngine(
+                models=[fresh_textbook, fresh_textbook],
+                kinetics=[ek],
+                metabolite_ids=("glc__D_e",),
+                backend=SerialBackend(),
+            )
+
+    def test_engine_apply_to_state_grows_biomass_consumes_substrate(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(
+                ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),
+                ExchangeEntry("EX_o2_e", 15.0, 0.005, "uptake_only"),
+            ),
+        )
+        engine = ReactionEngine(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=("glc__D_e", "o2_e"),
+            backend=SerialBackend(),
+        )
+        C = np.array([[10.0], [100.0]])
+        B = np.array([[1.0e-3]])
+        C_new, B_new = engine.apply_to_state(C.copy(), B.copy(), dt=0.1)
+        assert B_new[0, 0] > B[0, 0]  # biomass grew
+        assert C_new[0, 0] < C[0, 0]  # glucose dropped
