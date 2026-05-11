@@ -1,0 +1,4 @@
+species: ecoli
+exchanges:
+  EX_glc__D_e: { v_max: 10.0, K_m: 0.5 }
+  EX_o2_e:     { v_max: 15.0, K_m: 0.005 }

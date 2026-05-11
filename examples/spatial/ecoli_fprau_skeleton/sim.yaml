@@ -1,0 +1,46 @@
+# Spatial dFBA skeleton example for PR 2.
+# Both species use the cobra-bundled textbook (E. coli core) model — the
+# "fprau" entry is a placeholder pointing at the same GEM so the example
+# runs offline. Replace with a real F. prausnitzii SBML when available.
+
+geometry:
+  dim: 1
+  n_grid: 10
+  length: 1.0e-3
+  boundary:
+    mucosa: { type: reflecting }
+    lumen:  { type: reflecting }
+
+simulation:
+  t_end: 1.0
+  dt: 0.1
+  snapshot_every: 0.5
+  cfl_safety: 0.4
+
+metabolites:
+  - id: glc__D_e
+    diffusion: 6.7e-10
+    init: { mode: uniform, value: 5.0 }
+  - id: o2_e
+    diffusion: 2.1e-9
+    init: { mode: uniform, value: 0.21 }
+
+species:
+  - name: ecoli
+    gem: cobra://textbook
+    kinetics: ./kinetics/ecoli.yaml
+    init:
+      mode: uniform
+      value: 1.0e-3
+  - name: fprau
+    gem: cobra://textbook
+    kinetics: ./kinetics/fprau.yaml
+    init:
+      mode: gaussian
+      center: 0.7
+      sigma: 0.1
+      peak: 1.0e-3
+
+output:
+  format: npz
+  precision: float32
