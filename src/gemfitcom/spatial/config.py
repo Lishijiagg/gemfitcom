@@ -77,6 +77,31 @@ class OutputConfig(BaseModel):
     precision: Literal["float32", "float64"] = "float32"
 
 
+class SpeciesInitConfig(BaseModel):
+    """Initial biomass distribution for one species."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["uniform", "gaussian", "step", "from_array"]
+    value: float | None = None
+    center: float | None = None
+    sigma: float | None = None
+    peak: float | None = None
+    path: Path | None = None
+
+
+class SpeciesConfig(BaseModel):
+    """One species' GEM + kinetics + initial biomass."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    gem: str
+    biomass_reaction: str | None = None
+    kinetics: Path
+    init: SpeciesInitConfig
+
+
 class SpatialConfig(BaseModel):
     """Top-level spatial config (PR 1 surface)."""
 
@@ -85,13 +110,20 @@ class SpatialConfig(BaseModel):
     geometry: GeometryConfig
     metabolites: list[MetaboliteConfig]
     simulation: SimulationConfig
+    species: list[SpeciesConfig] = Field(default_factory=list)
     output: OutputConfig = Field(default_factory=OutputConfig)
 
     @classmethod
     def from_yaml(cls, path: Path) -> SpatialConfig:
         with open(path) as f:
             data = yaml.safe_load(f)
-        return cls(**data)
+        cfg = cls(**data)
+        if "species" in data and len(cfg.species) == 0:
+            raise ValueError(
+                f"{path}: 'species' is present but empty; remove the field "
+                "or provide at least one species"
+            )
+        return cfg
 
     def check_cfl(self) -> None:
         """Raise RuntimeError if the configured dt violates CFL stability.

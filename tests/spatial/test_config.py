@@ -141,3 +141,89 @@ def test_spatial_config_check_cfl_no_op_when_all_diffusion_zero() -> None:
         met["diffusion"] = 0.0
     cfg_dict["simulation"]["dt"] = 1.0e6  # would violate CFL if any D > 0
     SpatialConfig(**cfg_dict).check_cfl()
+
+
+class TestSpeciesConfig:
+    def _base_yaml(self):
+        """Return the geometry/simulation/metabolites portion shared by tests."""
+        return """
+            geometry:
+              dim: 1
+              n_grid: 10
+              length: 1.0e-3
+              boundary:
+                mucosa: {type: reflecting}
+                lumen:  {type: reflecting}
+            simulation:
+              t_end: 1.0
+              dt: 0.1
+              snapshot_every: 0.5
+            metabolites:
+              - id: glc__D_e
+                diffusion: 6.7e-10
+                init: {mode: uniform, value: 5.0}
+            """
+
+    def test_minimal_species_section(self, tmp_path):
+        cfg_path = tmp_path / "sim.yaml"
+        cfg_path.write_text(
+            self._base_yaml()
+            + """
+            species:
+              - name: ecoli
+                gem: cobra://textbook
+                kinetics: ./kinetics/ecoli.yaml
+                init: {mode: uniform, value: 1.0e-3}
+            """
+        )
+        from gemfitcom.spatial.config import SpatialConfig
+
+        cfg = SpatialConfig.from_yaml(cfg_path)
+        assert len(cfg.species) == 1
+        sp = cfg.species[0]
+        assert sp.name == "ecoli"
+        assert sp.gem == "cobra://textbook"
+        assert sp.kinetics.name == "ecoli.yaml"
+        assert sp.init.mode == "uniform"
+        assert sp.init.value == 1.0e-3
+
+    def test_species_gaussian_init(self, tmp_path):
+        cfg_path = tmp_path / "sim.yaml"
+        cfg_path.write_text(
+            self._base_yaml()
+            + """
+            species:
+              - name: fprau
+                gem: cobra://textbook
+                kinetics: ./kinetics/fprau.yaml
+                init:
+                  mode: gaussian
+                  center: 0.7
+                  sigma: 0.1
+                  peak: 1.0e-3
+            """
+        )
+        from gemfitcom.spatial.config import SpatialConfig
+
+        cfg = SpatialConfig.from_yaml(cfg_path)
+        sp = cfg.species[0]
+        assert sp.init.mode == "gaussian"
+        assert sp.init.center == 0.7
+        assert sp.init.sigma == 0.1
+        assert sp.init.peak == 1.0e-3
+
+    def test_species_empty_list_rejected(self, tmp_path):
+        cfg_path = tmp_path / "sim.yaml"
+        cfg_path.write_text(self._base_yaml().rstrip() + "\n            species: []\n")
+        from gemfitcom.spatial.config import SpatialConfig
+
+        with pytest.raises(ValueError, match="at least one"):
+            SpatialConfig.from_yaml(cfg_path)
+
+    def test_species_field_optional_for_pr1_compat(self, tmp_path):
+        cfg_path = tmp_path / "sim.yaml"
+        cfg_path.write_text(self._base_yaml())
+        from gemfitcom.spatial.config import SpatialConfig
+
+        cfg = SpatialConfig.from_yaml(cfg_path)
+        assert cfg.species == []
