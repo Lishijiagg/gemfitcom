@@ -11,9 +11,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, get_args
 
+import cobra
 import numpy as np
 import yaml
 
+from gemfitcom.io.models import load_model as load_sbml_model
 from gemfitcom.kinetics.mm import michaelis_menten
 
 ExchangeMode = Literal["uptake_only", "bidirectional"]
@@ -159,3 +161,38 @@ def load_kinetics_yaml(path: str | Path) -> ExchangeKinetics:
             )
         )
     return ExchangeKinetics(species=data["species"], entries=tuple(entries))
+
+
+_COBRA_URI_PREFIX = "cobra://"
+
+
+def resolve_gem(uri: str) -> cobra.Model:
+    """Resolve a GEM identifier to a loaded :class:`cobra.Model`.
+
+    Supported forms:
+        - ``cobra://<name>``: built-in cobra-shipped models, e.g.
+          ``cobra://textbook`` (E. coli core).
+        - Filesystem path: delegates to :func:`gemfitcom.io.models.load_model`.
+
+    Args:
+        uri: GEM identifier.
+
+    Returns:
+        Loaded :class:`cobra.Model`.
+
+    Raises:
+        ValueError: unknown scheme, or cobra:// name not recognised.
+        FileNotFoundError: filesystem path does not exist.
+    """
+    if uri.startswith(_COBRA_URI_PREFIX):
+        name = uri[len(_COBRA_URI_PREFIX) :]
+        try:
+            return cobra.io.load_model(name)
+        except Exception as exc:
+            raise ValueError(f"Unknown cobra built-in model {name!r} (URI={uri!r}): {exc}") from exc
+    if "://" in uri:
+        scheme = uri.split("://", 1)[0]
+        raise ValueError(
+            f"Unknown GEM URI scheme {scheme!r} in {uri!r}; expected 'cobra://' or a path"
+        )
+    return load_sbml_model(uri)

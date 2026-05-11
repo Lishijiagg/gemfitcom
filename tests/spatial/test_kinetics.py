@@ -1,4 +1,4 @@
-"""Tests for spatial/kinetics.py — ExchangeEntry + ExchangeKinetics + YAML loader."""
+"""Tests for spatial/kinetics.py — ExchangeEntry + ExchangeKinetics + YAML loader + GEM resolver."""
 
 from __future__ import annotations
 
@@ -153,3 +153,42 @@ class TestLoadKineticsYaml:
 
         with pytest.raises(TypeError, match="exchange id must be a string"):
             load_kinetics_yaml(yaml_path)
+
+
+class TestResolveGem:
+    def test_resolve_cobra_textbook(self):
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        m = resolve_gem("cobra://textbook")
+        assert hasattr(m, "reactions")
+        assert hasattr(m, "metabolites")
+        assert any(r.id.startswith("EX_") for r in m.reactions)
+
+    def test_resolve_filesystem_path(self, tmp_path):
+        import cobra
+
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        m = cobra.io.load_model("textbook")
+        sbml = tmp_path / "core.xml"
+        cobra.io.write_sbml_model(m, str(sbml))
+        loaded = resolve_gem(str(sbml))
+        assert len(loaded.reactions) == len(m.reactions)
+
+    def test_resolve_unknown_cobra_name_raises(self):
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        with pytest.raises(ValueError, match="cobra"):
+            resolve_gem("cobra://this_model_does_not_exist_42")
+
+    def test_resolve_missing_path_raises(self, tmp_path):
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        with pytest.raises(FileNotFoundError):
+            resolve_gem(str(tmp_path / "nope.xml"))
+
+    def test_resolve_unknown_scheme_raises(self):
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        with pytest.raises(ValueError, match="scheme"):
+            resolve_gem("http://example.com/model.xml")
