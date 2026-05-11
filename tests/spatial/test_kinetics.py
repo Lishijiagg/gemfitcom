@@ -192,3 +192,12 @@ class TestResolveGem:
 
         with pytest.raises(ValueError, match="scheme"):
             resolve_gem("http://example.com/model.xml")
+
+    def test_resolve_empty_cobra_name_raises(self):
+        """`cobra://` with no name (or whitespace) fails fast, not deep in cobra internals."""
+        from gemfitcom.spatial.kinetics import resolve_gem
+
+        with pytest.raises(ValueError, match="Empty cobra model name"):
+            resolve_gem("cobra://")
+        with pytest.raises(ValueError, match="Empty cobra model name"):
+            resolve_gem("cobra://   ")

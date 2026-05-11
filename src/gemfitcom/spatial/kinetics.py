@@ -185,7 +185,9 @@ def resolve_gem(uri: str) -> cobra.Model:
         FileNotFoundError: filesystem path does not exist.
     """
     if uri.startswith(_COBRA_URI_PREFIX):
-        name = uri[len(_COBRA_URI_PREFIX) :]
+        name = uri[len(_COBRA_URI_PREFIX) :].strip()
+        if not name:
+            raise ValueError(f"Empty cobra model name in URI {uri!r}")
         try:
             return cobra.io.load_model(name)
         except Exception as exc:
