@@ -103,3 +103,109 @@ class TestSolveCell:
         result = solve_cell(model=fresh_textbook, kinetics=ek, exchange_index=idx, C_local=C_local)
         ac_idx = metabolite_ids.index("ac_e")
         assert result.flux[ac_idx] <= 1e-9
+
+
+class TestSerialBackend:
+    def _make_setup(self):
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(
+                ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),
+                ExchangeEntry("EX_o2_e", 15.0, 0.005, "uptake_only"),
+            ),
+        )
+        return ek, ("glc__D_e", "o2_e")
+
+    def test_serial_step_shapes(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+
+        ek, met_ids = self._make_setup()
+        backend = SerialBackend()
+        n_grid = 3
+        C = np.array([[10.0, 5.0, 1.0], [100.0, 100.0, 100.0]])
+        B = np.array([[1.0e-3, 1.0e-3, 1.0e-3]])
+        mu, flux = backend.step(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=met_ids,
+            C=C,
+            B=B,
+        )
+        assert mu.shape == (1, n_grid)
+        assert flux.shape == (2, 1, n_grid)
+        assert np.all(mu > 0)
+
+    def test_serial_skips_empty_cells(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+
+        ek, met_ids = self._make_setup()
+        backend = SerialBackend(empty_eps=1e-12)
+        C = np.array([[10.0, 10.0, 10.0], [100.0, 100.0, 100.0]])
+        B = np.array([[1.0e-3, 0.0, 1.0e-15]])
+        mu, flux = backend.step(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=met_ids,
+            C=C,
+            B=B,
+        )
+        assert mu[0, 0] > 0
+        assert mu[0, 1] == 0.0
+        assert mu[0, 2] == 0.0
+        assert np.all(flux[:, 0, 1] == 0)
+        assert np.all(flux[:, 0, 2] == 0)
+
+    def test_serial_two_species(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+
+        ek1, met_ids = self._make_setup()
+        ek2 = ExchangeKinetics(
+            species="fprau",
+            entries=(ExchangeEntry("EX_glc__D_e", 8.0, 0.5, "uptake_only"),),
+        )
+        backend = SerialBackend()
+        C = np.array([[10.0, 10.0], [100.0, 100.0]])
+        B = np.array([[1.0e-3, 1.0e-3], [1.0e-3, 1.0e-3]])
+        mu, flux = backend.step(
+            models=[fresh_textbook, fresh_textbook.copy()],
+            kinetics=[ek1, ek2],
+            metabolite_ids=met_ids,
+            C=C,
+            B=B,
+        )
+        assert mu.shape == (2, 2)
+        assert flux.shape == (2, 2, 2)
+
+    def test_negative_concentration_clipped(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+
+        ek, met_ids = self._make_setup()
+        backend = SerialBackend()
+        C = np.array([[-1e-12, 10.0], [100.0, 100.0]])
+        B = np.array([[1.0e-3, 1.0e-3]])
+        mu, flux = backend.step(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=met_ids,
+            C=C,
+            B=B,
+        )
+        assert mu[0, 0] >= 0
+        glc_idx = met_ids.index("glc__D_e")
+        assert np.isclose(flux[glc_idx, 0, 0], 0.0, atol=1e-9)
+
+    def test_serial_rejects_wrong_B_shape(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+
+        ek, met_ids = self._make_setup()
+        backend = SerialBackend()
+        C = np.zeros((2, 3))
+        B = np.zeros((1, 4))  # n_grid mismatch
+        with pytest.raises(ValueError, match="n_grid"):
+            backend.step(
+                models=[fresh_textbook],
+                kinetics=[ek],
+                metabolite_ids=met_ids,
+                C=C,
+                B=B,
+            )
