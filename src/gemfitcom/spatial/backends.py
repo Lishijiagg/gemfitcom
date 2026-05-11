@@ -62,7 +62,7 @@ class SerialBackend:
         n_metabolites, n_grid = C.shape
         if B.shape != (n_species, n_grid):
             raise ValueError(
-                f"B shape {B.shape} does not match (n_species={n_species}, " f"n_grid={n_grid})"
+                f"B shape {B.shape} does not match (n_species={n_species}, n_grid={n_grid})"
             )
 
         indices = [

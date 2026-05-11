@@ -53,8 +53,7 @@ def build_exchange_index(
     for exch_id in kin_idx_by_exch:
         if exch_id not in model_rxn_ids:
             raise KeyError(
-                f"Kinetics for {kinetics.species!r} references {exch_id} "
-                f"which is not in the model"
+                f"Kinetics for {kinetics.species!r} references {exch_id} which is not in the model"
             )
 
     out: dict[int, int] = {}
@@ -144,7 +143,7 @@ class ReactionEngine:
     def __post_init__(self) -> None:
         if len(self.models) != len(self.kinetics):
             raise ValueError(
-                f"models length {len(self.models)} != kinetics length " f"{len(self.kinetics)}"
+                f"models length {len(self.models)} != kinetics length {len(self.kinetics)}"
             )
         self.warnings: list[str] = []
 

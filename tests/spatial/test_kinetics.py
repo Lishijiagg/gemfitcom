@@ -116,7 +116,7 @@ class TestLoadKineticsYaml:
     def test_load_with_bidirectional_mode(self, tmp_path):
         yaml_path = tmp_path / "k.yaml"
         yaml_path.write_text(
-            "species: x\n" "exchanges:\n" "  EX_ac_e: {v_max: 5.0, K_m: 0.1, mode: bidirectional}\n"
+            "species: x\nexchanges:\n  EX_ac_e: {v_max: 5.0, K_m: 0.1, mode: bidirectional}\n"
         )
         from gemfitcom.spatial.kinetics import load_kinetics_yaml
 
@@ -131,7 +131,7 @@ class TestLoadKineticsYaml:
 
     def test_missing_required_field_raises(self, tmp_path):
         yaml_path = tmp_path / "bad.yaml"
-        yaml_path.write_text("species: x\n" "exchanges:\n" "  EX_a_e: {v_max: 1.0}\n")
+        yaml_path.write_text("species: x\nexchanges:\n  EX_a_e: {v_max: 1.0}\n")
         from gemfitcom.spatial.kinetics import load_kinetics_yaml
 
         with pytest.raises(KeyError, match="K_m"):
@@ -139,7 +139,7 @@ class TestLoadKineticsYaml:
 
     def test_top_level_species_required(self, tmp_path):
         yaml_path = tmp_path / "bad.yaml"
-        yaml_path.write_text("exchanges:\n" "  EX_a_e: {v_max: 1.0, K_m: 0.1}\n")
+        yaml_path.write_text("exchanges:\n  EX_a_e: {v_max: 1.0, K_m: 0.1}\n")
         from gemfitcom.spatial.kinetics import load_kinetics_yaml
 
         with pytest.raises(KeyError, match="species"):
@@ -148,7 +148,7 @@ class TestLoadKineticsYaml:
     def test_non_string_exchange_id_rejected(self, tmp_path):
         """Numeric YAML keys (typo'd or unquoted) raise TypeError, not silent coerce."""
         yaml_path = tmp_path / "bad.yaml"
-        yaml_path.write_text("species: x\n" "exchanges:\n" "  123: {v_max: 1.0, K_m: 0.1}\n")
+        yaml_path.write_text("species: x\nexchanges:\n  123: {v_max: 1.0, K_m: 0.1}\n")
         from gemfitcom.spatial.kinetics import load_kinetics_yaml
 
         with pytest.raises(TypeError, match="exchange id must be a string"):

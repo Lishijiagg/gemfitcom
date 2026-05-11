@@ -79,7 +79,7 @@ def test_pr1_integration_smoke(tmp_path: Path) -> None:
         output_dir=tmp_path / "snaps", every=cfg.simulation.snapshot_every
     )
 
-    n_steps = int(round(cfg.simulation.t_end / cfg.simulation.dt))
+    n_steps = round(cfg.simulation.t_end / cfg.simulation.dt)
     for _ in range(n_steps):
         # Reaction sub-step is a no-op in PR 1 (no FBA yet).
         new_C = spatial.diffuse_step(state.metabolites, L, D, cfg.simulation.dt)
