@@ -273,3 +273,66 @@ class TestReactionEngine:
         C_new, B_new = engine.apply_to_state(C.copy(), B.copy(), dt=0.1)
         assert B_new[0, 0] > B[0, 0]  # biomass grew
         assert C_new[0, 0] < C[0, 0]  # glucose dropped
+
+
+class TestEngineGuards:
+    def test_engine_clips_mu_when_overflow(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),),
+        )
+        engine = ReactionEngine(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=("glc__D_e",),
+            backend=SerialBackend(),
+            mu_dt_clip=5.0,
+        )
+        C = np.array([[100.0]])
+        B = np.array([[1.0e-3]])
+        _, B_new = engine.apply_to_state(C.copy(), B.copy(), dt=100.0)
+        assert B_new[0, 0] <= 1.0e-3 * np.exp(5.0) + 1e-9
+        assert len(engine.warnings) >= 1
+        assert any("mu" in w.lower() for w in engine.warnings)
+
+    def test_warnings_accumulate_and_clear(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),),
+        )
+        engine = ReactionEngine(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=("glc__D_e",),
+            backend=SerialBackend(),
+            mu_dt_clip=5.0,
+        )
+        engine.apply_to_state(np.array([[100.0]]), np.array([[1.0e-3]]), dt=100.0)
+        first_n = len(engine.warnings)
+        engine.apply_to_state(np.array([[100.0]]), np.array([[1.0e-3]]), dt=100.0)
+        assert len(engine.warnings) > first_n
+        engine.clear_warnings()
+        assert engine.warnings == []
+
+    def test_no_warnings_at_default_clip(self, fresh_textbook):
+        from gemfitcom.spatial.backends import SerialBackend
+        from gemfitcom.spatial.reaction import ReactionEngine
+
+        ek = ExchangeKinetics(
+            species="ecoli",
+            entries=(ExchangeEntry("EX_glc__D_e", 10.0, 0.5, "uptake_only"),),
+        )
+        engine = ReactionEngine(
+            models=[fresh_textbook],
+            kinetics=[ek],
+            metabolite_ids=("glc__D_e",),
+            backend=SerialBackend(),
+        )
+        engine.apply_to_state(np.array([[10.0]]), np.array([[1.0e-3]]), dt=0.1)
+        assert engine.warnings == []

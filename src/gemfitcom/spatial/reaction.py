@@ -122,23 +122,31 @@ class ReactionEngine:
 
     Attributes:
         models: One :class:`cobra.Model` per species.
-        kinetics: One :class:`ExchangeKinetics` per species (order matches
-            ``models``).
+        kinetics: One :class:`ExchangeKinetics` per species.
         metabolite_ids: Tuple of cobra metabolite ids tracked on the grid.
-            Exchange reactions resolve as ``f"EX_{met_id}"``.
         backend: Implementation of the :class:`Backend` protocol.
+        mu_dt_clip: If ``mu * dt > mu_dt_clip`` in any cell, mu is clipped
+            in place and a warning is appended to :attr:`warnings`. Default
+            5.0 (exp(5) ≈ 148× growth per step is non-physical). Use
+            ``float('inf')`` to disable.
+
+    Non-init attributes:
+        warnings: Mutable list of warning strings accumulated across calls.
+            Use :meth:`clear_warnings` to reset.
     """
 
     models: list
     kinetics: list[ExchangeKinetics]
     metabolite_ids: tuple[str, ...]
     backend: object
+    mu_dt_clip: float = 5.0
 
     def __post_init__(self) -> None:
         if len(self.models) != len(self.kinetics):
             raise ValueError(
                 f"models length {len(self.models)} != kinetics length " f"{len(self.kinetics)}"
             )
+        self.warnings: list[str] = []
 
     @property
     def n_species(self) -> int:
@@ -148,12 +156,12 @@ class ReactionEngine:
     def n_metabolites(self) -> int:
         return len(self.metabolite_ids)
 
-    def step(self, C: np.ndarray, B: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
-        """Compute (mu, flux) fields. Does NOT mutate ``C`` or ``B``.
+    def clear_warnings(self) -> None:
+        """Reset the accumulated warning list."""
+        self.warnings = []
 
-        ``dt`` is accepted for future overflow guards (Task 10) but not used
-        by the inner FBA call.
-        """
+    def step(self, C: np.ndarray, B: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
+        """Compute (mu, flux) fields. Does NOT mutate ``C`` or ``B``."""
         return self.backend.step(
             models=self.models,
             kinetics=self.kinetics,
@@ -175,8 +183,22 @@ class ReactionEngine:
 
         ``flux × B`` uses pre-update ``B`` (forward Euler on the reaction
         substep, consistent with Lie splitting in the design doc).
+
+        If ``mu * dt > mu_dt_clip`` in any cell, mu is clipped and a
+        warning is appended to :attr:`warnings` (spec §6).
         """
         mu, flux = self.step(C, B, dt)
+
+        threshold = self.mu_dt_clip
+        if np.any(mu * dt > threshold):
+            mask = mu * dt > threshold
+            n_clipped = int(mask.sum())
+            self.warnings.append(
+                f"clipped mu in {n_clipped} cells where mu*dt > {threshold} "
+                f"(max mu*dt={float((mu * dt).max()):.3g}, dt={dt})"
+            )
+            mu = np.where(mask, threshold / dt, mu)
+
         B_new = B * np.exp(mu * dt)
         dC = np.einsum("jix,ix->jx", flux, B) * dt
         C_new = np.maximum(C + dC, 0.0)
