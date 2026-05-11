@@ -144,3 +144,12 @@ class TestLoadKineticsYaml:
 
         with pytest.raises(KeyError, match="species"):
             load_kinetics_yaml(yaml_path)
+
+    def test_non_string_exchange_id_rejected(self, tmp_path):
+        """Numeric YAML keys (typo'd or unquoted) raise TypeError, not silent coerce."""
+        yaml_path = tmp_path / "bad.yaml"
+        yaml_path.write_text("species: x\n" "exchanges:\n" "  123: {v_max: 1.0, K_m: 0.1}\n")
+        from gemfitcom.spatial.kinetics import load_kinetics_yaml
+
+        with pytest.raises(TypeError, match="exchange id must be a string"):
+            load_kinetics_yaml(yaml_path)

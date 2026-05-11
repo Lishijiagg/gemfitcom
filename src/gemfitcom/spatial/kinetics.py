@@ -139,6 +139,11 @@ def load_kinetics_yaml(path: str | Path) -> ExchangeKinetics:
 
     entries: list[ExchangeEntry] = []
     for exch_id, params in data["exchanges"].items():
+        if not isinstance(exch_id, str):
+            raise TypeError(
+                f"{path}: exchange id must be a string (got {type(exch_id).__name__}: {exch_id!r}); "
+                "wrap numeric-looking ids in quotes in the YAML"
+            )
         if not isinstance(params, dict):
             raise ValueError(f"{path}: exchange {exch_id} must map to a dict")
         if "v_max" not in params:
